@@ -1,0 +1,179 @@
+---
+title: "Estadisticas Descriptivas"
+---
+
+Resultados Saber Pro año 2018 para la Universidad Nacional de Colombia
+
+```{r,warning=FALSE,message=FALSE}
+library(readxl)
+library(plotly)
+library(ggplot2)
+library(dplyr)
+library(cowplot)
+library(FactoClass)
+library(knitr) # para función kable (tablas estáticas)
+library(DT) # para tablas interactivas
+setwd("C:/Users/fabia/OneDrive - Universidad Nacional de Colombia/UNAL/Descriptiva multivariada/Saber Pro/Saber Pro Unal/Saber Pro Unal/")
+
+Resultados_Unal <- read_excel("Resultados_Unal.xlsx", sheet = "Hoja1")
+Facultades_Unal <- read_excel("Resultados_Unal.xlsx", sheet = "Hoja2")
+
+attach(Resultados_Unal)
+
+```
+
+### Facultades
+
+```{r}
+tabla_facultades<-data.frame(table(NOM_FACULTAD)) 
+tabla_facultades <- tabla_facultades[order(-tabla_facultades$Freq), ]
+plot_ly(x =tabla_facultades$Freq , y =tabla_facultades$NOM_FACULTAD , type  = "bar",orientation = 'h', name ="Barras") %>%
+  layout(title = "Población por facultad",
+         xaxis = list(title = "Frecuencia"),
+         yaxis = list(title = "Facultad"))
+```
+
+### Programa academico
+
+| Programas                  | Estudiantes | Programas              | Estudiantes | Programas              | Estudiantes | Programas                   | Estudiantes |
+|----------------------------|:-----------:|------------------------|:-----------:|------------------------|:-----------:|-----------------------------|:-----------:|
+| MEDICINA                   |     167     | GEOLOGIA               |     85      | FISICA                 |     57      | ESPAÑOL Y FILOLOGIA CLASICA |     28      |
+| INGENIERIA CIVIL           |     142     | ANTROPOLOGIA           |     79      | INGENIERIA ELECTRONICA |     56      | FISIOTERAPIA                |     28      |
+| FARMACIA                   |     123     | CONTADURIA PUBLICA     |     79      | MUSICA INSTRUMENTAL    |     54      | GEOGRAFIA                   |     27      |
+| INGENIERIA QUIMICA         |     120     | BIOLOGIA               |     76      | ZOOTECNIA              |     54      | CINE Y TELEVISION           |     20      |
+| ECONOMIA                   |     113     | TRABAJO SOCIAL         |     75      | ESTADISTICA            |     48      | FONOAUDIOLOGIA              |     13      |
+| DERECHO                    |     110     | INGENIERIA AGRONOMICA  |     71      | DISEÑO GRAFICO         |     46      | TERAPIA OCUPACIONAL         |     12      |
+| PSICOLOGIA                 |     107     | ENFERMERIA             |     70      | LINGUISTICA            |     39      | MUSICA                      |      5      |
+| CIENCIA POLITICA           |     105     | ODONTOLOGIA            |     68      | QUIMICA                |     39      |                             |             |
+| ADMINISTRACION DE EMPRESAS |     99      | MEDICINA VETERINARIA   |     66      | FILOSOFIA              |     38      |                             |             |
+| FILOLOGIA E IDIOMAS        |     96      | SOCIOLOGIA             |     65      | MATEMATICAS            |     38      |                             |             |
+| INGENIERIA DE SISTEMAS     |     95      | INGENIERIA INDUSTRIAL  |     64      | INGENIERIA AGRICOLA    |     35      |                             |             |
+| ARQUITECTURA               |     90      | NUTRICION Y DIETETICA  |     61      | LITERATURA             |     34      |                             |             |
+| INGENIERIA MECANICA        |     90      | INGENIERIA MECATRONICA |     60      | ARTES PLASTICAS        |     33      |                             |             |
+| INGENIERIA ELECTRICA       |     87      | DISEÑO INDUSTRIAL      |     57      | HISTORIA               |     31      |                             |             |
+
+### Genero
+
+```{r}
+tabla_genero<-data.frame(table(ESTU_GENERO)) 
+tabla_genero <- tabla_genero[order(-tabla_genero$Freq), ]
+plot_ly(x =tabla_genero$ESTU_GENERO, y = tabla_genero$Freq  , type  = "bar", name ="Barras") %>%
+  layout(title = "Genero",
+         xaxis = list(title = "Genero"),
+         yaxis = list(title = "Población"))
+```
+
+### Pago Matricula Padres
+
+```{r}
+tabla_pagomatricula<-data.frame(table(ESTU_PAGOMATRICULAPADRES)) 
+tabla_pagomatricula <- tabla_pagomatricula[order(-tabla_pagomatricula$Freq), ]
+plot_ly(x =tabla_pagomatricula$ESTU_PAGOMATRICULAPADRES, y = tabla_pagomatricula$Freq  , type  = "bar", name ="Barras") %>%
+  layout(title = "Pago de matricula por padres",
+         xaxis = list(title = "Pago matricula padres"),
+         yaxis = list(title = "Población"))
+```
+
+### Edad
+
+```{r}
+
+diferencia <- as.numeric(difftime("2018-12-31", ESTU_FECHANACIMIENTO, units = "days"))
+
+edad <- diferencia / 365.25 
+p<-ggplot(data = data.frame(x = edad), aes(x = x)) +
+  geom_histogram(binwidth = 0.5, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Distribución de edades",
+       x = "Edades",
+       y = "Frecuencia")
+
+plotly_histogram <- ggplotly(p)
+plotly_histogram
+```
+
+### Educación Familia
+
+#### Madre
+
+```{r}
+tabla_edumadre<-data.frame(table(FAMI_EDUCACIONMADRE)) 
+tabla_edumadre <- tabla_edumadre[order(-tabla_edumadre$Freq), ]
+
+plot_ly(x =tabla_edumadre$Freq, y =tabla_edumadre$FAMI_EDUCACIONMADRE , type  = "bar",orientation = 'h', name ="Barras") %>%
+  layout(title = "Educación Madre",
+         xaxis = list(title = "Frecuencia"),
+         yaxis = list(title = "Educación"))
+
+```
+
+#### Padre
+
+```{r}
+tabla_edupadre<-data.frame(table(FAMI_EDUCACIONPADRE)) 
+tabla_edupadre <- tabla_edupadre[order(-tabla_edupadre$Freq), ]
+
+plot_ly(x =tabla_edupadre$Freq, y =tabla_edupadre$FAMI_EDUCACIONPADRE, type  = "bar",orientation = 'h', name ="Barras") %>%
+  layout(title = "Educación Padre",
+         xaxis = list(title = "Frecuencia"),
+         yaxis = list(title = "Educación"))
+```
+
+### Valor matricula
+
+```{r}
+tabla_matricula<-data.frame(table(ESTU_VALORMATRICULAUNIVERSIDAD)) 
+tabla_matricula<- tabla_matricula[order(-tabla_matricula$Freq), ]
+
+plot_ly(x =tabla_matricula$Freq, y =tabla_matricula$ESTU_VALORMATRICULAUNIVERSIDAD, type  = "bar",orientation = 'h', name ="Barras") %>%
+  layout(title = "Educación Padre",
+         xaxis = list(title = "Frecuencia"),
+         yaxis = list(title = "Educación"))
+```
+
+### Horas de trabajo en la semana
+
+```{r}
+tabla_horastrabajo<-data.frame(table(ESTU_HORASSEMANATRABAJA)) 
+tabla_horastrabajo<- tabla_horastrabajo[order(-tabla_horastrabajo$Freq), ]
+
+plot_ly(x =tabla_horastrabajo$Freq, y =tabla_horastrabajo$ESTU_HORASSEMANATRABAJA, type  = "bar",orientation = 'h', name ="Barras") %>%
+  layout(title = "Educación Padre",
+         xaxis = list(title = "Frecuencia"),
+         yaxis = list(title = "Educación"))
+```
+
+### Estrato socioeconomico
+
+```{r}
+tabla_estrato<-data.frame(table(FAMI_ESTRATOVIVIENDA)) 
+tabla_estrato<- tabla_estrato[order(-tabla_estrato$Freq), ]
+
+plot_ly(x =tabla_estrato$Freq, y =tabla_estrato$FAMI_ESTRATOVIVIENDA, type  = "bar",orientation = 'h', name ="Barras") %>%
+  layout(title = "Educación Padre",
+         xaxis = list(title = "Frecuencia"),
+         yaxis = list(title = "Educación"))
+```
+
+### Puntajes de Examen Saber Pro
+
+```{r}
+
+puntajes<- data.frame(Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+puntajes$Punt_Global<-rowMeans(puntajes)
+puntajes<-na.omit(puntajes)
+## Crear el boxplot comparativo
+fig <- plot_ly(y = puntajes$Razo_Cuantitativos, type = "box", name="Razonamiento Cuantitativo")
+fig <- fig %>% add_trace(y = puntajes$Comu_escrita, name="Comunicación escrita")
+fig <- fig %>% add_trace(y = puntajes$Lectura_critica,  name="Lectura Critica")
+fig <- fig %>% add_trace(y = puntajes$Compe_ciudada,  name="Competencia ciudadanas")
+fig <- fig %>% add_trace(y = puntajes$Ingles, name="Ingles")
+fig <- fig %>% add_trace(y = puntajes$Punt_Global, name="Puntajes Globales")
+fig <- fig %>% layout(title = "Puntajes Saber Pro 2018")
+
+fig
+
+```

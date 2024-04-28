@@ -1,0 +1,164 @@
+---
+title: "ACP"
+---
+
+## ACP Puntajes Saber Pro
+
+Se implementara el analisis por componentes principales para los puntajes obtenidos por los estudiantes de la UNAL en el Saber Pro; para ello necesitamos saber cuales son sus estadisticas descriptivas basicas, la cuales las podemos observar en la siguiente tabla.
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+library(readxl)
+library(plotly)
+library(ggplot2)
+library(dplyr)
+library(cowplot)
+library(FactoClass)
+library(knitr) # para función kable (tablas estáticas)
+library(DT) # para tablas interactivas
+library(ade4)
+setwd("C:/Users/fabia/OneDrive - Universidad Nacional de Colombia/UNAL/Descriptiva multivariada/Saber Pro/Saber Pro Unal/Saber Pro Unal/")
+
+Resultados_Unal <- read_excel("Resultados_Unal.xlsx", sheet = "Hoja1")
+Facultades_Unal <- read_excel("Resultados_Unal.xlsx", sheet = "Hoja2")
+
+puntajes<- data.frame(Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+puntajes$Punt_Global<-rowMeans(puntajes)
+puntajes<-na.omit(puntajes)
+```
+
+```{r}
+kable(summary(puntajes))
+```
+
+Estos estadisticos nos dan indicio como estan distribuidos los puntajes por cada componente y en el puntaje global; ademas vemos los mejores componentes son Razonamiento Cuantitativo, Lectura Critica e Ingles, debido a que su mediana esta por encima de 190 puntos.
+
+Ahora veremos un mapa de calor donde nos indica la correlacion que hay entre los componentes del examen, vemos en primera medida que el componente de Competencias Ciudadadanas esta muy bien correlacionado con el Puntaje Global, como tambien Lectura Critica e Ingles, por otro lado competencias ciudadanas tiene una correlación media entre Lectura Critica; los demas componetes tienen una baja correlación entre ellos.
+
+```{r, warning=FALSE,message=FALSE}
+# Convierte la matriz de correlación a formato de datos
+library(reshape2)
+matriz_correlacion<-cor(puntajes)
+matriz_correlacion<-round(matriz_correlacion, 2)
+datos_correlacion <- melt(matriz_correlacion)
+
+# Crea el mapa de calor de la matriz de correlación
+mapa_calor_correlacion <- ggplot(datos_correlacion, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab",
+                       name="Correlación") +
+  geom_text(aes(label = value), color = "black", size = 4) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 10, hjust = 1)) +
+  labs(title = "Mapa de Calor de Matriz de Correlación")
+
+# Muestra el mapa de calor
+print(mapa_calor_correlacion)
+
+```
+
+Ahora queremos hallar la inercia, esta medida nos explica el total de la varianza por cada componente principal, esto se calcula mediante a la siguiente ecuación en forma univariada.
+
+$$
+Inercia(N_{n})=\sum_{i=1}^np_{i} ( \sum_{i=1}^n y_{C_{i}j}^2)
+$$
+
+Cuando todos los pesos $p_{i}$ son iguales a $\frac{1}{n}$
+
+$$
+Inercia(N_{n})=\sum_{j=1}^p  \sigma_{j}^2 
+$$
+
+Ahora, para nuestro caso que es multivariado se utlizada la siguiente expresión.
+
+$$
+Inercia=traza(X'NXM)
+$$
+
+Donde $X'NXM$ es la matriz a la que se le hallan los valores y vectores propios.\
+
+Con lo anterior, se calcula la inercia de las componentes ha tres ejes, donde se calcula los valores propios y con ello la inercia de cada componente. En la tabla podemos decir que con tres compenentes respondemos con el $80.037 \%$ de la variabilidad de los datos.\
+
+```{r}
+puntajes<-na.omit(puntajes)
+acp <- dudi.pca(puntajes,scannf = FALSE, nf = 3)
+valp <- t(inertia(acp)$tot.inertia) # valores propios
+kable(valp, digits = 3)
+
+```
+
+Ahora en el siguiente grafico de barras podemos ver los valores propios o las inercias; es decir que podemos inferir que con tres componentes podemos explicar la variabilidad de los datos.
+
+```{r}
+barplot(acp$eig, horiz = TRUE) # histograma de valores propios
+abline(v = 1, lty = 3)
+```
+
+En la siguiente tabla, vemos las columnas de las coordenadas respecto a cada componente.
+
+```{r}
+kable(acp$co, digits = 3)
+```
+
+Para el puntaje global de la prueba, vemos que tiene las siguientes coordenas para cada componente.
+
+```{r}
+# exam como ilustrativa
+Gexam <- cor(puntajes$Punt_Global, acp$li)
+rownames(Gexam)<-"Punt_Global"
+kable(Gexam, digits = 3)
+```
+
+A continuación vemos el circulo de correlación, donde nos indica el eje 1 y 2; que las variables que esten mas cerca entre si tiene mas correlación por ejemplo; Competencias ciudadanas , Lectura critica con Ingles, ademas Razonamiento Cuantitativo y Comunicación Escrita, estan relativamente alejadas de los demas componentes del examen.
+
+Tambien podemos inferir que para que en el examen tenga buenos resultados, basta tener tres componentes bien, los cuales son Lectura Critica, Competencias Ciudadanas e Ingles; aclarando que estos resultados son para los estudiantes de la UNAL.
+
+```{r}
+s.corcircle(acp$co)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+```
+
+```{r}
+# Plano con los ejes 2 y 3
+s.corcircle(acp$co, xax = 2, yax = 3)
+s.arrow(Gexam, xax = 2, yax = 3, 
+        add.plot = TRUE, boxes = FALSE)
+```
+
+```{r}
+# Código experimental
+G_df = as.data.frame(acp$co)
+fig <- plot_ly(G_df, x = ~Comp1, y = ~Comp2, z = ~Comp3)
+# Graficare como puntos pero sería mejor como flechas
+fig <- fig %>% add_markers() 
+fig <- fig %>% add_text(text = rownames(G_df))
+fig <- fig %>% add_markers(x = 0, y = 0, z = 0)
+
+sphere <- function(n = 100){
+  theta <- seq(0, pi, length.out = n)
+  phi <- seq(0, 2 * pi, length.out = n)
+  r <- 1
+  x <- r * outer(sin(theta), cos(phi))
+  y <- r * outer(sin(theta), sin(phi))
+  z <- r * outer(cos(theta), rep(1, length(phi)))
+  return(list(x = x, y = y, z = z))
+}
+s_c <- sphere()
+fig <- fig %>% add_trace(x = s_c$x, y = s_c$y, z = s_c$z, 
+                         type = 'surface', opacity = 0.2, 
+                         colorscale = "Greys", # cambiar por valor fijo
+                         showscale = FALSE)
+
+fig <- fig %>% layout(title = "vectores columna\n(variables)",
+                      scene = list(xaxis = list(range = c(-1,1)),
+                                   yaxis = list(range = c(-1,1)),
+                                   zaxis = list(range = c(-1,1)),
+                                   aspectratio = list(x=1,y=1,z=1),
+                                   camera = list(eye = list(x=1,y=1,z=1))),
+                      showlegend = FALSE)
+fig
+```
