@@ -1,0 +1,841 @@
+---
+title: "ACP"
+---
+
+## ACP Puntajes Saber Pro
+
+Se implementara el analisis por componentes principales para los puntajes obtenidos por los estudiantes de la UNAL en el Saber Pro; para ello necesitamos saber cuales son sus estadisticas descriptivas basicas, la cuales las podemos observar en la siguiente tabla.
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+library(readxl)
+library(plotly)
+library(ggplot2)
+library(dplyr)
+library(cowplot)
+library(FactoClass)
+library(knitr) # para función kable (tablas estáticas)
+library(DT) # para tablas interactivas
+library(ade4)
+setwd("C:/Users/fabia/OneDrive - Universidad Nacional de Colombia/UNAL/Descriptiva multivariada/Saber Pro/Saber Pro Unal/Saber Pro Unal/")
+
+Resultados_Unal <- read_excel("Resultados_Unal.xlsx", sheet = "Hoja1")
+Facultades_Unal <- read_excel("Resultados_Unal.xlsx", sheet = "Hoja2")
+
+puntajes<- data.frame(Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+puntajes$Punt_Global<-rowMeans(puntajes)
+puntajes<-na.omit(puntajes)
+```
+
+```{r}
+kable(summary(puntajes))
+```
+
+Estos estadisticos nos dan indicio como estan distribuidos los puntajes por cada componente y en el puntaje global; ademas vemos los mejores componentes son Razonamiento Cuantitativo, Lectura Critica e Ingles, debido a que su mediana esta por encima de 190 puntos.
+
+#### Centro de gravedad
+
+Para el calculo de el centro de garvedad, se procede la siguiente manera
+
+$$
+\overrightarrow{g}= \sum _{i=1}^{n}  p_{i}  \overrightarrow{y}_{i}
+$$
+
+donde $g$ son los centro de gravedad para cada las relación de las variables, como todos los individuos tienen el mismo peso es decir que $p=\frac{1}{n}$ . Esto se puede ver detenidamente en lo siguiente.
+
+Ahora, se presenta la tabla de facultades que funciona como guia para endenter los graficos con sus respectivos centros de gravedad.
+
+| Facultad                         | Codigo |
+|----------------------------------|--------|
+| Artes                            | 1      |
+| Ciencias                         | 2      |
+| Ciencias Agrarias                | 3      |
+| Ciencias Económicas              | 4      |
+| Ciencias Humanas                 | 5      |
+| Derecho y Ciencias Politicas     | 6      |
+| Enfermería                       | 7      |
+| Ingeniería                       | 8      |
+| Medicina                         | 9      |
+| Medicina Veterinaria y Zootecnia | 10     |
+| Odontología                      | 11     |
+
+: Tabla de facultades
+
+##### Relación entre Puntaje Global, Razonamiento Cuantitativo e/y ingles
+
+En el siguiente grafico vemos la relacion que existe entre estas variables, es notorio que la facultad de ciencias e ingenieria tienen mejores puntajes, las que tienen menor rendimiento son Enfermeria y Odontología.
+
+```{r}
+Facultades<- data.frame(Facultad=Resultados_Unal$NOM_FACULTAD,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+Facultades$Punt_Global<-rowMeans(Facultades[,2:6])
+Facultades<-na.omit(Facultades)
+
+
+Y <- aggregate(. ~ Facultad, data = Facultades, FUN = mean)
+
+Y3D <- scatterplot3d(Y[, c("Punt_Global" ,"Razo_Cuantitativos", "Ingles")], main = "Y", type = "h", color = 4, box = FALSE, las = 1)
+Y3D$points3d(Y[, c("Punt_Global" ,"Razo_Cuantitativos", "Ingles")], pch = 16, col = 4)
+
+cord2d <- Y3D$xyz.convert(Y[, c("Punt_Global" ,"Razo_Cuantitativos", "Ingles")]) # convertir coordenadas 3D a 2D
+text(cord2d, labels = rownames(Y[, c("Punt_Global" ,"Razo_Cuantitativos", "Ingles")]), cex = 0.8, pos = 3)
+
+g1 <- colMeans(Y[, c("Punt_Global" ,"Razo_Cuantitativos", "Ingles")]) # centro de gravedad
+Y3D$points3d(t(g1), pch = 19, col = 3, type = "h")
+text(Y3D$xyz.convert(t(g1)), labels = "g", pos = 3, cex = 1.3)
+
+```
+
+Vemos las repectivas coordenadas del centro de gravedad.
+
+```{r}
+g1
+```
+
+##### Relación entre Puntaje Global, Comunicación escrita y lectura critica
+
+En el siguiente grafico vemos la relacion que existe entre estas variables, es notorio que la facultad Derecho y Ciencia politica tienen mejores puntajes, las que tienen menor rendimiento son Odontología y Ciencias agrarias
+
+```{r}
+Y3D <- scatterplot3d(Y[, c("Punt_Global" ,"Comu_escrita","Lectura_critica")], main = "Y", type = "h", color = 4, box = FALSE, las = 1)
+Y3D$points3d(Y[, c("Punt_Global" ,"Comu_escrita","Lectura_critica")], pch = 16, col = 4)
+
+cord2d <- Y3D$xyz.convert(Y[, c("Punt_Global" ,"Comu_escrita","Lectura_critica")]) # convertir coordenadas 3D a 2D
+text(cord2d, labels = rownames(Y[, c("Punt_Global" ,"Comu_escrita","Lectura_critica")]), cex = 0.8, pos = 3)
+
+g2 <- colMeans(Y[, c("Punt_Global","Comu_escrita","Lectura_critica")]) # centro de gravedad
+Y3D$points3d(t(g2), pch = 19, col = 3, type = "h")
+text(Y3D$xyz.convert(t(g2)), labels = "g", pos = 3, cex = 1.3)
+```
+
+Vemos las repectivas coordenadas del centro de gravedad.
+
+```{r}
+g2
+```
+
+##### Relación entre Puntaje Global, lectura critica y Competencias ciudadanas
+
+En el siguiente grafico vemos la relacion que existe entre estas variables, es notorio que la facultad Derecho y Ciencia politica tienen mejores puntajes, las que tienen menor rendimiento es Odontología.
+
+```{r}
+Y3D <- scatterplot3d(Y[, c("Punt_Global" ,"Lectura_critica" ,"Compe_ciudada" )], main = "Y", type = "h", color = 4, box = FALSE, las = 1)
+Y3D$points3d(Y[, c("Punt_Global" ,"Lectura_critica" ,"Compe_ciudada")], pch = 16, col = 4)
+
+cord2d <- Y3D$xyz.convert(Y[, c("Punt_Global" ,"Lectura_critica" ,"Compe_ciudada")]) # convertir coordenadas 3D a 2D
+text(cord2d, labels = rownames(Y[, c("Punt_Global" ,"Lectura_critica" ,"Compe_ciudada")]), cex = 0.8, pos = 3)
+
+g3 <- colMeans(Y[, c("Punt_Global","Lectura_critica" ,"Compe_ciudada")]) # centro de gravedad
+Y3D$points3d(t(g3), pch = 19, col = 3, type = "h")
+text(Y3D$xyz.convert(t(g3)), labels = "g", pos = 3, cex = 1.3)
+```
+
+Vemos las repectivas coordenadas del centro de gravedad.
+
+```{r}
+g3
+```
+
+#### Centrado para facultades
+
+##### Relación entre Puntaje Global, Comunicación escrita y lectura critica
+
+```{r}
+unos <- rep(1, 11) # vector de n unos
+Yc1 <- Y[, c("Punt_Global" ,"Razo_Cuantitativos", "Ingles")] - unos %*% t(g1)
+kable(Yc1)
+```
+
+```{r}
+Yc3D <- scatterplot3d(Yc1, main = "Yc", type = "h", 
+                      color = 4, box = FALSE, las = 1)
+Yc3D$points3d(Yc1, pch = 16, col = 4)
+addgrids3d(Yc1, grid = c("xy","xz","yz"))
+text(Yc3D$xyz.convert(Yc1), labels = rownames(Yc1), 
+     cex = 0.8, pos = 3)
+Yc3D$points3d(t(c(0,0,0)), pch = 19, col = 3, type = "h")
+text(Yc3D$xyz.convert(t(c(0,0,0))), labels = "0", 
+     pos = 3, cex = 1.3)
+```
+
+##### Relación entre Puntaje Global, Comunicación escrita y lectura critica
+
+```{r}
+unos <- rep(1, 11) # vector de n unos
+Yc2 <- Y[, c("Punt_Global" ,"Comu_escrita","Lectura_critica")] - unos %*% t(g2)
+kable(Yc2)
+```
+
+```{r}
+Yc3D <- scatterplot3d(Yc2, main = "Yc", type = "h", color = 4, box = FALSE, las = 1)
+Yc3D$points3d(Yc2, pch = 16, col = 4)
+addgrids3d(Yc2, grid = c("xy","xz","yz"))
+text(Yc3D$xyz.convert(Yc2), labels = rownames(Yc2), cex = 0.8, pos = 3)
+Yc3D$points3d(t(c(0,0,0)), pch = 19, col = 3, type = "h")
+text(Yc3D$xyz.convert(t(c(0,0,0))), labels = "0", pos = 3, cex = 1.3)
+
+```
+
+##### Relación entre Puntaje Global, lectura critica y Competencias ciudadanas
+
+```{r}
+unos <- rep(1, 11) # vector de n unos
+Yc3 <- Y[, c("Punt_Global" ,"Lectura_critica" ,"Compe_ciudada" )]- unos %*% t(g3)
+kable(Yc3)
+```
+
+```{r}
+Yc3D <- scatterplot3d(Yc3, main = "Yc", type = "h", color = 4, box = FALSE, las = 1)
+Yc3D$points3d(Yc3, pch = 16, col = 4)
+addgrids3d(Yc3, grid = c("xy","xz","yz"))
+text(Yc3D$xyz.convert(Yc3), labels = rownames(Yc3), cex = 0.8, pos = 3)
+Yc3D$points3d(t(c(0,0,0)), pch = 19, col = 3, type = "h")
+text(Yc3D$xyz.convert(t(c(0,0,0))), labels = "0", pos = 3, cex = 1.3)
+```
+
+#### Distancia entre individuos
+
+Para hallar la distancia entre los individuos se la distancia euclidiana
+
+$$
+d^2( \overrightarrow{y}_{i},\overrightarrow{y}_{l}) =\sum_{j=1} ^p (y_{ij} - y_{lj})^2
+$$
+
+Graficamente la nube de puntos se ve de la siguiente manera.
+
+##### Relación entre Puntaje Global, Comunicación escrita y lectura critica
+
+```{r}
+fig <- plot_ly(Yc1, x = ~Punt_Global, y = ~Razo_Cuantitativos, z = ~Ingles)
+fig <- fig %>% add_markers()
+fig <- fig %>% add_text(text = rownames(Yc1))
+fig <- fig %>% add_markers(x = 0, y = 0, z = 0)
+fig <- fig %>% layout(showlegend = FALSE)
+fig
+```
+
+```{r}
+(d <- round(dist(Yc1), 1))
+```
+
+##### Relación entre Puntaje Global, Comunicación escrita y lectura critica
+
+```{r}
+fig <- plot_ly(Yc2, x = ~Punt_Global, y = ~Comu_escrita, z = ~Lectura_critica)
+fig <- fig %>% add_markers()
+fig <- fig %>% add_text(text = rownames(Yc2))
+fig <- fig %>% add_markers(x = 0, y = 0, z = 0)
+fig <- fig %>% layout(showlegend = FALSE)
+fig
+```
+
+```{r}
+(d <- round(dist(Yc2), 1))
+```
+
+##### Relación entre Puntaje Global, lectura critica y Competencias ciudadanas
+
+```{r}
+fig <- plot_ly(Yc3, x = ~Punt_Global, y = ~Lectura_critica, z = ~Compe_ciudada)
+fig <- fig %>% add_markers()
+fig <- fig %>% add_text(text = rownames(Yc3))
+fig <- fig %>% add_markers(x = 0, y = 0, z = 0)
+fig <- fig %>% layout(showlegend = FALSE)
+fig
+```
+
+```{r}
+(d <- round(dist(Yc3), 1))
+```
+
+#### Matriz de correlación de puntajes
+
+Ahora veremos un mapa de calor donde nos indica la correlacion que hay entre los componentes del examen, vemos en primera medida que el componente de Competencias Ciudadadanas esta muy bien correlacionado con el Puntaje Global, como tambien Lectura Critica e Ingles, por otro lado competencias ciudadanas tiene una correlación media entre Lectura Critica; los demas componetes tienen una baja correlación entre ellos.
+
+```{r, warning=FALSE,message=FALSE}
+# Convierte la matriz de correlación a formato de datos
+library(reshape2)
+matriz_correlacion<-cor(puntajes)
+matriz_correlacion<-round(matriz_correlacion, 2)
+datos_correlacion <- melt(matriz_correlacion)
+
+# Crea el mapa de calor de la matriz de correlación
+mapa_calor_correlacion <- ggplot(datos_correlacion, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab",
+                       name="Correlación") +
+  geom_text(aes(label = value), color = "black", size = 4) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 10, hjust = 1)) +
+  labs(title = "Mapa de Calor de Matriz de Correlación")
+
+# Muestra el mapa de calor
+print(mapa_calor_correlacion)
+
+```
+
+Ahora queremos hallar la inercia, esta medida nos explica el total de la varianza por cada componente principal, esto se calcula mediante a la siguiente ecuación en forma univariada.
+
+$$
+Inercia(N_{n})=\sum_{i=1}^np_{i} ( \sum_{i=1}^n y_{C_{i}j}^2)
+$$
+
+Cuando todos los pesos $p_{i}$ son iguales a $\frac{1}{n}$
+
+$$
+Inercia(N_{n})=\sum_{j=1}^p  \sigma_{j}^2 
+$$
+
+Ahora, para nuestro caso que es multivariado se utlizada la siguiente expresión.
+
+$$
+Inercia=traza(X'NXM)
+$$
+
+Donde $X'NXM$ es la matriz a la que se le hallan los valores y vectores propios.\
+
+Con lo anterior, se calcula la inercia de las componentes ha tres ejes, donde se calcula los valores propios y con ello la inercia de cada componente. En la tabla podemos decir que con los tres compenentes respondemos con el $80.037 \%$ de la variabilidad de los datos.\
+
+```{r}
+puntajes<-na.omit(puntajes)
+acp <- dudi.pca(puntajes,scannf = FALSE, nf = 3)
+valp <- t(inertia(acp)$tot.inertia) # valores propios
+kable(valp, digits = 3)
+
+```
+
+Ahora en el siguiente grafico de barras podemos ver los valores propios o las inercias; es decir que podemos inferir que con tres componentes podemos explicar la variabilidad de los datos.
+
+```{r}
+barplot(acp$eig, horiz = TRUE) # histograma de valores propios
+abline(v = 1, lty = 3)
+```
+
+En la siguiente tabla, vemos las columnas de las coordenadas respecto a cada componente.
+
+```{r}
+kable(acp$co, digits = 3)
+```
+
+Para el puntaje global de la prueba, vemos que tiene las siguientes coordenas para cada componente.
+
+```{r}
+# exam como ilustrativa
+Gexam <- cor(puntajes$Punt_Global, acp$li)
+rownames(Gexam)<-"Punt_Global"
+kable(Gexam, digits = 3)
+```
+
+A continuación vemos el circulo de correlación, donde nos indica el eje 1 y 2; que las variables que esten mas cerca entre si tiene mas correlación por ejemplo; Competencias ciudadanas , Lectura critica con Ingles, ademas Razonamiento Cuantitativo y Comunicación Escrita, estan relativamente alejadas de los demas componentes del examen.
+
+Tambien podemos inferir que para que en el examen tenga buenos resultados, basta tener tres componentes bien, los cuales son Lectura Critica, Competencias Ciudadanas e Ingles; aclarando que estos resultados son para los estudiantes de la UNAL.
+
+```{r}
+s.corcircle(acp$co)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+```
+
+Respecto a los ejes 2 y 3, vemos que existe una correlacion clara entre Ingles, Lectura Critica y Competencias Cuidadanas. Tambien vemos las longitudes de los vactores para Razonamiento Cuantitativo y Comunicación Escrita, tiene mayor influencia en estas componentes.
+
+```{r}
+# Plano con los ejes 2 y 3
+s.corcircle(acp$co, xax = 2, yax = 3)
+s.arrow(Gexam, xax = 2, yax = 3, 
+        add.plot = TRUE, boxes = FALSE)
+```
+
+Más detallamente vemos, la relación de los tres ejes en el siguiente grafico, donde podemos ver todo lo anteriormente dicho,
+
+```{r}
+# Código experimental
+G_df = as.data.frame(acp$co)
+fig <- plot_ly(G_df, x = ~Comp1, y = ~Comp2, z = ~Comp3)
+# Graficare como puntos pero sería mejor como flechas
+fig <- fig %>% add_markers() 
+fig <- fig %>% add_text(text = rownames(G_df))
+fig <- fig %>% add_markers(x = 0, y = 0, z = 0)
+
+sphere <- function(n = 100){
+  theta <- seq(0, pi, length.out = n)
+  phi <- seq(0, 2 * pi, length.out = n)
+  r <- 1
+  x <- r * outer(sin(theta), cos(phi))
+  y <- r * outer(sin(theta), sin(phi))
+  z <- r * outer(cos(theta), rep(1, length(phi)))
+  return(list(x = x, y = y, z = z))
+}
+s_c <- sphere()
+fig <- fig %>% add_trace(x = s_c$x, y = s_c$y, z = s_c$z, 
+                         type = 'surface', opacity = 0.2, 
+                         colorscale = "Greys", # cambiar por valor fijo
+                         showscale = FALSE)
+
+fig <- fig %>% layout(title = "vectores columna\n(variables)",
+                      scene = list(xaxis = list(range = c(-1,1)),
+                                   yaxis = list(range = c(-1,1)),
+                                   zaxis = list(range = c(-1,1)),
+                                   aspectratio = list(x=1,y=1,z=1),
+                                   camera = list(eye = list(x=1,y=1,z=1))),
+                      showlegend = FALSE)
+fig
+```
+
+## Analisis socioeconomico
+
+### Facultades
+
+Se realiza el analisis respecto a las facultades de la Universidad Nacional de Colombia sede Bogotá para el año 2018, vemos a continuación, la tabla donde sale la siguiente información.
+
+-   wcat: Pesos dados ha cada categoria.
+
+-   d2: Distancia al cuadrado al origen del espacio.
+
+-   Axi: Coordenadas factoriales
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+Facultades<- data.frame(Facultad=Resultados_Unal$NOM_FACULTAD,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+Facultades$Punt_Global<-rowMeans(Facultades[,2:6])
+Facultades<-na.omit(Facultades)
+
+```
+
+```{r}
+sup <- supqual(acp,as.factor(Facultades$Facultad))
+kable(cbind(wcat = sup$wcat, d2 = sup$dis2, sup$coor), 
+      digits = 3)
+
+```
+
+```{r}
+kable(cbind(sup$tv, sup$cos2), digits = 3)
+```
+
+Graficamente podemos ver como estan ubicadas cada facultadad respecto a sus puntajes obtenidos en el Saber Pro.
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1,1.5), ylim = c(-0.6,0.6))
+points(sup$coor, col = 2, pch = 16)
+text(sup$coor, labels = rownames(sup$coor),
+     col = 2, pos = 1, font = 3)
+
+```
+
+Al comparar con los puntajes obtenidos en la prueba con las facultades, podemos ver lo siguiente respecto a la primera y segunda componente.
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1.5,1), ylim = c(-0.8,0.8))
+s.arrow(acp$co, add.plot = TRUE, boxes = FALSE)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+points(sup$coor, col = 3, pch = 16)
+text(sup$coor, labels = rownames(sup$coor),
+     col = 3, pos = 1, font = 3)
+```
+
+### Programa Academico
+
+```{r}
+Programa_academico<- data.frame(Prog_Acade=Resultados_Unal$ESTU_PRGM_ACADEMICO,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+Programa_academico$Punt_Global<-rowMeans(Programa_academico[,2:6])
+Programa_academico<-na.omit(Programa_academico)
+
+```
+
+```{r}
+sup1 <- supqual(acp,as.factor(Programa_academico$Prog_Acade))
+kable(cbind(wcat = sup1$wcat, d2 = sup1$dis2, sup1$coor), 
+      digits = 3)
+```
+
+```{r}
+kable(cbind(sup1$tv, sup1$cos2), digits = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1,1.5), ylim = c(-0.8,0.6))
+points(sup1$coor, col = 2, pch = 16)
+text(sup1$coor, labels = rownames(sup1$coor),
+     col = 2, pos = 1, font = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1.5,2), ylim = c(-0.8,0.8))
+s.arrow(acp$co, add.plot = TRUE, boxes = FALSE)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+points(sup1$coor, col = 3, pch = 16)
+text(sup1$coor, labels = rownames(sup1$coor),
+     col = 3, pos = 1, font = 3)
+```
+
+### Genero
+
+```{r}
+Genero<- data.frame(Genero=Resultados_Unal$ESTU_GENERO,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+Genero$Punt_Global<-rowMeans(Genero[,2:6])
+Genero<-na.omit(Genero)
+
+```
+
+```{r}
+sup2 <- supqual(acp,as.factor(Genero$Genero))
+kable(cbind(wcat = sup2$wcat, d2 = sup2$dis2, sup2$coor), 
+      digits = 3)
+```
+
+```{r}
+kable(cbind(sup2$tv, sup2$cos2), digits = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1,1.5), ylim = c(-0.8,0.6))
+points(sup2$coor, col = 2, pch = 16)
+text(sup2$coor, labels = rownames(sup2$coor),
+     col = 2, pos = 1, font = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1.5,2), ylim = c(-0.8,0.8))
+s.arrow(acp$co, add.plot = TRUE, boxes = FALSE)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+points(sup2$coor, col = 3, pch = 16)
+text(sup2$coor, labels = rownames(sup2$coor),
+     col = 3, pos = 1, font = 3)
+```
+
+### Pago Matricula padres
+
+```{r}
+Pago_padres<- data.frame(Pago=Resultados_Unal$ESTU_PAGOMATRICULAPADRES,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+Pago_padres$Punt_Global<-rowMeans(Pago_padres[,2:6])
+Pago_padres<-na.omit(Pago_padres)
+
+```
+
+```{r}
+sup3 <- supqual(acp,as.factor(Pago_padres$Pago))
+kable(cbind(wcat = sup3$wcat, d2 = sup3$dis2, sup3$coor), 
+      digits = 3)
+```
+
+```{r}
+kable(cbind(sup3$tv, sup3$cos2), digits = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1,1.5), ylim = c(-0.8,0.6))
+points(sup3$coor, col = 2, pch = 16)
+text(sup3$coor, labels = rownames(sup3$coor),
+     col = 2, pos = 1, font = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1.5,2), ylim = c(-0.8,0.8))
+s.arrow(acp$co, add.plot = TRUE, boxes = FALSE)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+points(sup3$coor, col = 3, pch = 16)
+text(sup3$coor, labels = rownames(sup3$coor),
+     col = 3, pos = 1, font = 3)
+```
+
+### Edad
+
+```{r}
+
+
+limites_edad <- c(0, 25, 30, 35, 45,Inf) 
+nombres_edad <- c("0-25", "26-30","31-35" ,"36-45", "46+")
+
+diferencia <- as.numeric(difftime("2018-12-31",Resultados_Unal$ESTU_FECHANACIMIENTO, units = "days"))
+
+edad <- diferencia / 365.25 
+
+
+# Crear el factor con los rangos de edad
+rangos_edad <- cut(edad, breaks = limites_edad, labels = nombres_edad)
+
+
+rango_edad_estu<- data.frame(rangos_edad,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+rango_edad_estu$Punt_Global<-rowMeans(rango_edad_estu[,2:6])
+rango_edad_estu<-na.omit(rango_edad_estu)
+
+
+
+```
+
+```{r}
+sup4 <- supqual(acp,as.factor(rango_edad_estu$rangos_edad))
+kable(cbind(wcat = sup4$wcat, d2 = sup4$dis2, sup4$coor), 
+      digits = 3)
+```
+
+```{r}
+kable(cbind(sup4$tv, sup4$cos2), digits = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1,1.5), ylim = c(-0.8,0.6))
+points(sup4$coor, col = 2, pch = 16)
+text(sup4$coor, labels = rownames(sup4$coor),
+     col = 2, pos = 1, font = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1.5,2), ylim = c(-0.8,0.8))
+s.arrow(acp$co, add.plot = TRUE, boxes = FALSE)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+points(sup4$coor, col = 3, pch = 16)
+text(sup4$coor, labels = rownames(sup4$coor),
+     col = 3, pos = 1, font = 3)
+```
+
+### Educación Familia
+
+#### Madre
+
+```{r}
+
+Edu_madre<- data.frame(Edu_M=Resultados_Unal$FAMI_EDUCACIONMADRE,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+Edu_madre$Punt_Global<-rowMeans(Edu_madre[,2:6])
+Edu_madre<-na.omit(Edu_madre)
+
+```
+
+```{r}
+sup5 <- supqual(acp,as.factor(Edu_madre$Edu_M))
+kable(cbind(wcat = sup5$wcat, d2 = sup5$dis2, sup5$coor), 
+      digits = 3)
+```
+
+```{r}
+kable(cbind(sup5$tv, sup5$cos2), digits = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1,1.5), ylim = c(-0.8,0.8))
+points(sup5$coor, col = 2, pch = 16)
+text(sup5$coor, labels = rownames(sup5$coor),
+     col = 2, pos = 1, font = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1.5,2), ylim = c(-1,0.8))
+s.arrow(acp$co, add.plot = TRUE, boxes = FALSE)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+points(sup5$coor, col = 3, pch = 16)
+text(sup5$coor, labels = rownames(sup5$coor),
+     col = 3, pos = 1, font = 3)
+```
+
+#### Padre
+
+```{r}
+edu_padres<- data.frame(edu_padre=Resultados_Unal$FAMI_EDUCACIONPADRE,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+edu_padres$Punt_Global<-rowMeans(edu_padres[,2:6])
+edu_padres<-na.omit(edu_padres)
+```
+
+```{r}
+sup6 <- supqual(acp,as.factor(edu_padres$edu_padre))
+kable(cbind(wcat = sup6$wcat, d2 = sup6$dis2, sup6$coor), 
+      digits = 3)
+```
+
+```{r}
+kable(cbind(sup6$tv, sup6$cos2), digits = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1,1.5), ylim = c(-0.8,0.8))
+points(sup6$coor, col = 2, pch = 16)
+text(sup6$coor, labels = rownames(sup6$coor),
+     col = 2, pos = 1, font = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1.5,2), ylim = c(-1,0.8))
+s.arrow(acp$co, add.plot = TRUE, boxes = FALSE)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+points(sup6$coor, col = 3, pch = 16)
+text(sup6$coor, labels = rownames(sup6$coor),
+     col = 3, pos = 1, font = 3)
+```
+
+### Valor Matricula
+
+```{r}
+Valor_matri<- data.frame(Valor_M=Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+Valor_matri$Punt_Global<-rowMeans(Valor_matri[,2:6])
+Valor_matri<-na.omit(Valor_matri)
+```
+
+```{r}
+sup7 <- supqual(acp,as.factor(Valor_matri$Valor_M))
+kable(cbind(wcat = sup7$wcat, d2 = sup7$dis2, sup7$coor), 
+      digits = 3)
+```
+
+```{r}
+kable(cbind(sup7$tv, sup7$cos2), digits = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-2,1.5), ylim = c(-0.8,0.8))
+points(sup7$coor, col = 2, pch = 16)
+text(sup7$coor, labels = rownames(sup7$coor),
+     col = 2, pos = 1, font = 3)
+```
+
+```{r}
+
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1.5,2), ylim = c(-1,0.8))
+s.arrow(acp$co, add.plot = TRUE, boxes = FALSE)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+points(sup7$coor, col = 3, pch = 16)
+text(sup7$coor, labels = rownames(sup7$coor),
+     col = 3, pos = 1, font = 3)
+```
+
+### Horas de trabajo
+
+```{r}
+Horas_trabajo<- data.frame(Horas=Resultados_Unal$ESTU_HORASSEMANATRABAJA,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+Horas_trabajo$Punt_Global<-rowMeans(Horas_trabajo[,2:6])
+Horas_trabajo<-na.omit(Horas_trabajo)
+```
+
+```{r}
+sup8 <- supqual(acp,as.factor(Horas_trabajo$Horas))
+kable(cbind(wcat = sup8$wcat, d2 = sup8$dis2, sup8$coor), 
+      digits = 3)
+```
+
+```{r}
+kable(cbind(sup8$tv, sup8$cos2), digits = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-2,1.5), ylim = c(-0.8,0.8))
+points(sup8$coor, col = 2, pch = 16)
+text(sup8$coor, labels = rownames(sup8$coor),
+     col = 2, pos = 1, font = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1.5,2), ylim = c(-1,0.8))
+s.arrow(acp$co, add.plot = TRUE, boxes = FALSE)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+points(sup8$coor, col = 3, pch = 16)
+text(sup8$coor, labels = rownames(sup8$coor),
+     col = 3, pos = 1, font = 3)
+```
+
+### Estrato Socioeconomico
+
+```{r}
+Estrato_soci<- data.frame(Estrato=Resultados_Unal$FAMI_ESTRATOVIVIENDA,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+Estrato_soci$Punt_Global<-rowMeans(Estrato_soci[,2:6])
+Estrato_soci<-na.omit(Estrato_soci)
+```
+
+```{r}
+sup9<- supqual(acp,as.factor(Horas_trabajo$Horas))
+kable(cbind(wcat = sup9$wcat, d2 = sup9$dis2, sup9$coor), 
+      digits = 3)
+```
+
+```{r}
+kable(cbind(sup9$tv, sup9$cos2), digits = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-2,1.5), ylim = c(-0.8,0.8))
+points(sup9$coor, col = 2, pch = 16)
+text(sup9$coor, labels = rownames(sup9$coor),
+     col = 2, pos = 1, font = 3)
+```
+
+```{r}
+plot(acp, Tcol = FALSE, ucal = 100, cex.row = 0.2,
+     xlim = c(-1.5,2), ylim = c(-1,0.8))
+s.arrow(acp$co, add.plot = TRUE, boxes = FALSE)
+s.arrow(Gexam, add.plot = TRUE, boxes = FALSE)
+points(sup9$coor, col = 3, pch = 16)
+text(sup9$coor, labels = rownames(sup9$coor),
+     col = 3, pos = 1, font = 3)
+```
