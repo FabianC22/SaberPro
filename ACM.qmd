@@ -1,0 +1,193 @@
+---
+title: "ACM"
+format: html
+editor: visual
+---
+
+```{r}
+library(readxl)
+library(dplyr)
+library(FactoClass)
+library(knitr)
+library(FactoMineR)
+library(factoextra)
+library(ggplot2)
+library(ade4)
+```
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+
+setwd("C:/Users/fabia/OneDrive - Universidad Nacional de Colombia/UNAL/Descriptiva multivariada/Saber Pro/Saber Pro Unal/Saber Pro Unal/")
+
+Resultados_Unal <- read_excel("Resultados_Unal.xlsx", sheet = "Hoja1")
+Resultados_Unal <- Resultados_Unal %>% filter(!is.na(Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT))
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Artes"] <- "Art"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Ciencias"] <- "Ci"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Derecho, ciencias políticas y sociales"] <- "DyCP"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Medicina"] <- "Med"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Odontología"] <- "Odon"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Ciencias agrarias"] <- "CiAgr"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Ciencias humanas"] <- "CiHum"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Ciencias económicas"] <- "CiEco"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Medicina veterinaria y zootecnia"] <- "MedVe"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Enfermería"] <- "Enfer"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Ingeniería"] <- "Ing"
+```
+
+### Edad
+
+Se realiza la categorización de las variable cuantitativa por medio de sus cuartiles
+
+```{r, echo=FALSE}
+# Calcular los cuantiles (cuartiles en este caso)
+diferencia <- as.numeric(difftime("2018-12-31",Resultados_Unal$ESTU_FECHANACIMIENTO, units = "days"))
+
+Resultados_Unal$Edad <- diferencia / 365.25 
+
+
+cuartiles_edad <- quantile(Resultados_Unal$Edad, probs = seq(0, 1, by = 0.25))
+# Discretizar  en cuartiles
+Resultados_Unal$Edad_cuartiles <- cut(Resultados_Unal$Edad, 
+                          breaks = cuartiles_edad, 
+                          include.lowest = TRUE, 
+                          labels = c("19.82-22.64", "22.64-23.68", "23.68-25.57", "25.57-64.29"))
+
+
+```
+
+### Nivel educativo padres
+
+### Madre
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Educación profesional completa"] <- "EPC"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Educación profesional incompleta"] <- "EPI"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Ninguno"] <- "Nin"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "No Aplica"] <- "No_Apli"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "No sabe"] <- "N/S"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Postgrado"] <- "Postg"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Primaria completa"] <- "Pri_C"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Primaria incompleta"] <- "Pri_I"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Secundaria (Bachillerato) completa"] <- "Sec_C"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Secundaria (Bachillerato) incompleta"] <- "Sec_I"
+
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Técnica o tecnológica completa"] <- "T_C"
+
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Técnica o tecnológica incompleta"] <- "T_I"
+
+```
+
+
+### Padre
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE== "Educación profesional completa"] <- "EPC"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Educación profesional incompleta"] <- "EPI"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE== "Ninguno"] <- "Nin"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "No Aplica"] <- "No_Apli"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE== "No sabe"] <- "N/S"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Postgrado"] <- "Postg"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Primaria completa"] <- "Pri_C"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Primaria incompleta"] <- "Pri_I"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Secundaria (Bachillerato) completa"] <- "Sec_C"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Secundaria (Bachillerato) incompleta"] <- "Sec_I"
+
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Técnica o tecnológica completa"] <- "T_C"
+
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Técnica o tecnológica incompleta"] <- "T_I"
+
+
+```
+
+
+### Valor Matricula
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Entre 1 millón y menos de 2.5 millones"] <- "1m-2.5m"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Entre 2.5 millones y menos de 4 millones"] <- "2.5m-4m"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Entre 4 millones y menos de 5.5 millones"] <- "4m-5.5m"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Entre 5.5 millones y menos de 7 millones"] <- "5.5m-7m"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Entre 500 mil y menos de 1 millón"] <- "500mil-1m"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Más de 7 millones"] <- "<7"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Menos de 500 mil"] <- ">500mil"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "No pagó matrícula"] <- "NPM"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "No Sabe"] <- "N/S"
+
+```
+
+### Horas de trabajo semanal
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "0"] <- "0h"
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "Entre 11 y 20 horas"] <- "11h-20h"
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "Entre 21 y 30 horas"] <- "21h-30h"
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "Más de 30 horas"] <- "<30h"
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "Menos de 10 horas"] <- ">30h"
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "No Sabe"] <- "N/S"
+
+```
+
+
+
+
+### ACM
+
+```{r}
+#Y<-Resultados_Unal[, c("NOM_FACULTAD","ESTU_GENERO","ESTU_PAGOMATRICULAPADRES","Edad_cuartiles","FAMI_EDUCACIONMADRE","FAMI_EDUCACIONPADRE","ESTU_VALORMATRICULAUNIVERSIDAD","ESTU_HORASSEMANATRABAJA","FAMI_ESTRATOVIVIENDA")]
+
+Y<-Resultados_Unal[, c("NOM_FACULTAD","ESTU_GENERO")]
+```
+
+
+```{r}
+Z <- acm.disjonctif(as.matrix(Y)) 
+```
+
+
+```{r}
+Z <- as.matrix(Z)
+kable(round((B <- t(Z) %*% Z),4) )
+```
+
+```{r}
+library("FactoMineR")
+acm <- MCA(Y, graph=FALSE)
+```
+
+```{r}
+fviz_mca_biplot(acm, axes=c(1,2), 
+                repel = TRUE, label = "var",
+                ggtheme=theme_minimal())
+```
+
+```{r}
+fviz_mca_biplot(acm, axes=c(3,2), 
+                repel = TRUE, label = "var", 
+                ggtheme=theme_minimal())
+```
+
+
+```{r}
+fviz_contrib(acm, choice = "var", axes = 1)
+```
+
+```{r}
+fviz_mca_var(acm, col.var = "cos2", repel = TRUE, 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             ggtheme = theme_minimal())
+```
+
+```{r}
+fviz_mca_var(acm, axes = c(1,2),
+             choice = "mca.cor", repel = TRUE, 
+             ggtheme = theme_minimal())
+```
+
+```{r}
+ggplot(data = acm$var$eta2, aes(x = `Dim 3`, y = `Dim 2`)) +
+  geom_point(colour = "red") + xlim(-2,0.7) + ylim(-0.5,0.5) + 
+  geom_text(label=rownames(acm$var$eta2), colour = "red", hjust=1) + 
+  theme_minimal()
+```
+
+
+

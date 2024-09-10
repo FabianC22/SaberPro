@@ -1,0 +1,2173 @@
+---
+title: "ACS"
+format: html
+editor: visual
+---
+
+### Análisis de Correspondencias Simples
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+library(readxl)
+library(dplyr)
+library(FactoClass)
+library(knitr)
+library(FactoMineR)
+library(factoextra)
+```
+
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+
+setwd("C:/Users/fabia/OneDrive - Universidad Nacional de Colombia/UNAL/Descriptiva multivariada/Saber Pro/Saber Pro Unal/Saber Pro Unal/")
+
+Resultados_Unal <- read_excel("Resultados_Unal.xlsx", sheet = "Hoja1")
+Resultados_Unal <- Resultados_Unal %>% filter(!is.na(Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT))
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Artes"] <- "Art"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Ciencias"] <- "Ci"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Derecho, ciencias políticas y sociales"] <- "DyCP"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Medicina"] <- "Med"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Odontología"] <- "Odon"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Ciencias agrarias"] <- "CiAgr"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Ciencias humanas"] <- "CiHum"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Ciencias económicas"] <- "CiEco"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Medicina veterinaria y zootecnia"] <- "MedVe"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Enfermería"] <- "Enfer"
+Resultados_Unal$NOM_FACULTAD[Resultados_Unal$NOM_FACULTAD == "Ingeniería"] <- "Ing"
+
+
+```
+
+### Convertir las variables cuantitativas en cualitativas
+
+Se realiza la categorización de las variables cuantitativas por medio de sus cuartiles
+
+```{r, echo=FALSE}
+# Calcular los cuantiles (cuartiles en este caso)
+cuartiles_RC <- quantile(Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT, probs = seq(0, 1, by = 0.25))
+cuartiles_CE <- quantile(Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT, probs = seq(0, 1, by = 0.25))
+cuartiles_LC <- quantile(Resultados_Unal$MOD_LECTURA_CRITICA_PUNT, probs = seq(0, 1, by = 0.25))
+cuartiles_CC <- quantile(Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT, probs = seq(0, 1, by = 0.25))
+cuartiles_I <- quantile(Resultados_Unal$MOD_INGLES_PUNT, probs = seq(0, 1, by = 0.25))
+
+Tabla_cuartiles<-rbind(cuartiles_RC,cuartiles_CE ,cuartiles_LC,cuartiles_CC,cuartiles_I)
+rownames(Tabla_cuartiles) <- c("RC","CE","LC","CC","I")
+kable(Tabla_cuartiles)
+```
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+# Discretizar  en cuartiles
+Resultados_Unal$RC_cuartiles <- cut(Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT, 
+                          breaks = cuartiles_RC, 
+                          include.lowest = TRUE, 
+                          labels = c("Bajo", "Medio-Bajo", "Medio-Alto", "Alto"))
+
+Resultados_Unal$CE_cuartiles <- cut(Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT, 
+                          breaks = cuartiles_CE, 
+                          include.lowest = TRUE, 
+                          labels = c("Bajo", "Medio-Bajo", "Medio-Alto", "Alto"))
+
+Resultados_Unal$LC_cuartiles <- cut(Resultados_Unal$MOD_LECTURA_CRITICA_PUNT, 
+                          breaks = cuartiles_LC, 
+                          include.lowest = TRUE, 
+                          labels = c("Bajo", "Medio-Bajo", "Medio-Alto", "Alto"))
+
+Resultados_Unal$CC_cuartiles <- cut(Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT, 
+                          breaks = cuartiles_CC, 
+                          include.lowest = TRUE, 
+                          labels = c("Bajo", "Medio-Bajo", "Medio-Alto", "Alto"))
+
+Resultados_Unal$I_cuartiles <- cut(Resultados_Unal$MOD_INGLES_PUNT, 
+                          breaks = cuartiles_I, 
+                          include.lowest = TRUE, 
+                          labels = c("Bajo", "Medio-Bajo", "Medio-Alto", "Alto"))
+
+```
+
+```{r,echo=FALSE}
+# Tabla de frecuencia de las categorías
+
+Tabla_frecuencia<-rbind(table(Resultados_Unal$RC_cuartiles),table(Resultados_Unal$CE_cuartiles),table(Resultados_Unal$LC_cuartiles),table(Resultados_Unal$CC_cuartiles),table(Resultados_Unal$I_cuartiles))
+rownames(Tabla_frecuencia) <- c("RC","CE","LC","CC","I")
+kable(Tabla_frecuencia)
+```
+
+```{r, echo=FALSE}
+par(mfrow = c(2, 3))
+
+barplot(table(Resultados_Unal$RC_cuartiles), col = c("lightblue", "lightgreen", "orange", "red"),las = 2 ,main = "Distribución de RC", ylab = "Frecuencia")
+
+barplot(table(Resultados_Unal$CE_cuartiles), col = c("lightblue", "lightgreen", "orange", "red"), las = 2, main = "Distribución de CE", ylab = "Frecuencia")
+
+barplot(table(Resultados_Unal$LC_cuartiles), col = c("lightblue", "lightgreen", "orange", "red"), las = 2,main = "Distribución de LC", ylab = "Frecuencia")
+
+barplot(table(Resultados_Unal$CC_cuartiles), col = c("lightblue", "lightgreen", "orange", "red"), las = 2, main = "Distribución de CC", ylab = "Frecuencia")
+
+barplot(table(Resultados_Unal$I_cuartiles), col = c("lightblue", "lightgreen", "orange", "red"),las = 2, main = "Distribución de Ingles", ylab = "Frecuencia")
+```
+
+### Análisis de correspondencias simples respecto a las facultades
+
+#### Razonamiento Cuantitativo
+
+```{r, echo=FALSE}
+K <- unclass(table(Resultados_Unal$NOM_FACULTAD,Resultados_Unal$RC_cuartiles))
+K_add <- addmargins(K)
+kable(K_add)
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+k <- sum(K)
+F_add <- K_add / k
+kable(round(F_add,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+```{r,echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(K, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(K, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r,echo=FALSE}
+acs <- dudi.coa(K, scannf=FALSE, nf=2)
+
+```
+
+#### **Representación simultánea de perfiles fila y columna**
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acs, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.3,0.3),xlim = c(-0.7,0.7))
+```
+
+#### Comunicación escrita
+
+```{r, echo=FALSE}
+K1 <- unclass(table(Resultados_Unal$NOM_FACULTAD,Resultados_Unal$CE_cuartiles))
+K_add1 <- addmargins(K1)
+kable(K_add1)
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+k1 <- sum(K1)
+F_add1 <- K_add1 / k1
+kable(round(F_add1,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(K1, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(K1, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acs1 <- dudi.coa(K1, scannf=FALSE, nf=2)
+
+```
+
+#### **Representación simultánea de perfiles fila y columna**
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acs1, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.3,0.3),xlim = c(-0.7,0.7))
+```
+
+#### Lectura crítica
+
+```{r, echo=FALSE}
+K2 <- unclass(table(Resultados_Unal$NOM_FACULTAD,Resultados_Unal$LC_cuartiles))
+K_add2 <- addmargins(K2)
+kable(K_add2)
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+k2 <- sum(K2)
+F_add2 <- K_add2 / k2
+kable(round(F_add2,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(K2, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(K2, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acs2 <- dudi.coa(K2, scannf=FALSE, nf=2)
+
+```
+
+#### **Representación simultánea de perfiles fila y columna**
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acs2, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.3,0.3),xlim = c(-0.7,0.7))
+```
+
+#### Competencias Ciudadanas
+
+```{r, echo=FALSE}
+K3 <- unclass(table(Resultados_Unal$NOM_FACULTAD,Resultados_Unal$CC_cuartiles))
+K_add3 <- addmargins(K3)
+kable(K_add3)
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+k3 <- sum(K3)
+F_add3 <- K_add3 / k3
+kable(round(F_add3,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(K3, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(K3, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acs3 <- dudi.coa(K3, scannf=FALSE, nf=2)
+
+```
+
+#### **Representación simultánea de perfiles fila y columna**
+
+```{r, echo=FALSE,,warning=FALSE}
+plot(acs3, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.3,0.3),xlim = c(-0.7,0.7))
+```
+
+#### Ingles
+
+```{r, echo=FALSE}
+K4 <- unclass(table(Resultados_Unal$NOM_FACULTAD,Resultados_Unal$I_cuartiles))
+K_add4 <- addmargins(K4)
+kable(K_add4)
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+k4 <- sum(K4)
+F_add4 <- K_add4 / k4
+kable(round(F_add4,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(K4, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(K4, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acs4 <- dudi.coa(K4, scannf=FALSE, nf=2)
+
+```
+
+#### **Representación simultánea de perfiles fila y columna**
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acs4, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.3,0.3),xlim = c(-0.7,0.7))
+```
+
+### Análisis de correspondencias simples respecto a las variables socioeconómicas
+
+### Género 
+
+#### Razonamiento Cuantitativo
+
+```{r, echo=FALSE}
+
+Kg <- unclass(table(Resultados_Unal$ESTU_GENERO,Resultados_Unal$RC_cuartiles))
+K_addg <- addmargins(Kg)
+kable(K_addg)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kg <- sum(Kg)
+F_addg <- K_addg / kg
+kable(round(F_addg,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kg, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kg, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsg <- dudi.coa(Kg, scannf=FALSE, nf=1)
+
+kable(round(acsg$eig,4) )
+```
+
+#### Lectura Crítica
+
+```{r, echo=FALSE}
+
+Kg1 <- unclass(table(Resultados_Unal$ESTU_GENERO,Resultados_Unal$LC_cuartiles))
+K_addg1 <- addmargins(Kg1)
+kable(K_addg1)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kg1 <- sum(Kg1)
+F_addg1 <- K_addg1 / kg1
+kable(round(F_addg1,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kg1, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kg1, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsg1 <- dudi.coa(Kg1, scannf=FALSE, nf=1)
+
+kable(round(acsg1$eig,4) )
+```
+
+
+#### Comunicación Escrita
+
+```{r, echo=FALSE}
+
+Kg2 <- unclass(table(Resultados_Unal$ESTU_GENERO,Resultados_Unal$CE_cuartiles))
+K_addg2 <- addmargins(Kg2)
+kable(K_addg2)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kg2 <- sum(Kg2)
+F_addg2 <- K_addg2 / kg2
+kable(round(F_addg2,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kg2, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kg2, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsg2 <- dudi.coa(Kg2, scannf=FALSE, nf=1)
+
+kable(round(acsg2$eig,4) )
+```
+
+
+
+
+
+#### Competencias Ciudadanas
+
+```{r, echo=FALSE}
+
+Kg3 <- unclass(table(Resultados_Unal$ESTU_GENERO,Resultados_Unal$CC_cuartiles))
+K_addg3 <- addmargins(Kg3)
+kable(K_addg3)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kg3 <- sum(Kg3)
+F_addg3 <- K_addg3 / kg3
+kable(round(F_addg3,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kg3, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kg3, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsg3 <- dudi.coa(Kg3, scannf=FALSE, nf=1)
+
+kable(round(acsg3$eig,4) )
+```
+
+
+#### Ingles
+
+```{r, echo=FALSE}
+
+Kg4 <- unclass(table(Resultados_Unal$ESTU_GENERO,Resultados_Unal$I_cuartiles))
+K_addg4 <- addmargins(Kg4)
+kable(K_addg4)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kg4 <- sum(Kg4)
+F_addg4 <- K_addg4 / kg4
+kable(round(F_addg4,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kg4, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kg4, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsg4 <- dudi.coa(Kg4, scannf=FALSE, nf=1)
+kable(round(acsg4$eig,4) )
+```
+
+### Pago Matricula padres
+
+#### Razonamiento Cuantitativo
+
+
+```{r, echo=FALSE}
+
+Kp <- unclass(table(Resultados_Unal$ESTU_PAGOMATRICULAPADRES,Resultados_Unal$RC_cuartiles))
+K_addp <- addmargins(Kp)
+kable(K_addp)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kp <- sum(Kp)
+F_addp <- K_addp / kp
+kable(round(F_addp,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kp, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kp, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsp <- dudi.coa(Kp, scannf=FALSE, nf=2)
+kable(round(acsp$eig,4) )
+```
+
+
+#### Comunicación escrita
+
+
+```{r, echo=FALSE}
+
+Kp1 <- unclass(table(Resultados_Unal$ESTU_PAGOMATRICULAPADRES,Resultados_Unal$CE_cuartiles))
+K_addp1 <- addmargins(Kp1)
+kable(K_addp1)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kp1 <- sum(Kp1)
+F_addp1 <- K_addp1 / kp1
+kable(round(F_addp1,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kp1, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kp1, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsp1 <- dudi.coa(Kp1, scannf=FALSE, nf=2)
+kable(round(acsp1$eig,4) )
+```
+
+
+#### Lectura Crítica
+
+
+```{r, echo=FALSE}
+
+Kp2 <- unclass(table(Resultados_Unal$ESTU_PAGOMATRICULAPADRES,Resultados_Unal$LC_cuartiles))
+K_addp2 <- addmargins(Kp2)
+kable(K_addp2)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kp2 <- sum(Kp2)
+F_addp2 <- K_addp2 / kp2
+kable(round(F_addp2,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kp2, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kp2, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsp2 <- dudi.coa(Kp2, scannf=FALSE, nf=2)
+kable(round(acsp2$eig,4) )
+```
+
+
+#### Competencias Ciudadanas
+
+
+```{r, echo=FALSE}
+
+Kp3 <- unclass(table(Resultados_Unal$ESTU_PAGOMATRICULAPADRES,Resultados_Unal$CC_cuartiles))
+K_addp3 <- addmargins(Kp3)
+kable(K_addp3)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kp3 <- sum(Kp3)
+F_addp3 <- K_addp3 / kp3
+kable(round(F_addp3,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kp3, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kp3, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsp3 <- dudi.coa(Kp3, scannf=FALSE, nf=2)
+kable(round(acsp3$eig,4) )
+```
+
+#### Ingles
+
+
+```{r, echo=FALSE}
+
+Kp4 <- unclass(table(Resultados_Unal$ESTU_PAGOMATRICULAPADRES,Resultados_Unal$I_cuartiles))
+K_addp4 <- addmargins(Kp4)
+kable(K_addp4)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kp4 <- sum(Kp4)
+F_addp4 <- K_addp4 / kp4
+kable(round(F_addp4,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kp4, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kp4, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsp4 <- dudi.coa(Kp4, scannf=FALSE, nf=2)
+kable(round(acsp4$eig,4) )
+```
+
+### Edad
+
+Se realiza la categorización de las variable cuantitativa por medio de sus cuartiles
+
+```{r, echo=FALSE}
+# Calcular los cuantiles (cuartiles en este caso)
+diferencia <- as.numeric(difftime("2018-12-31",Resultados_Unal$ESTU_FECHANACIMIENTO, units = "days"))
+
+Resultados_Unal$Edad <- diferencia / 365.25 
+
+
+cuartiles_edad <- quantile(Resultados_Unal$Edad, probs = seq(0, 1, by = 0.25))
+kable(cuartiles_edad)
+
+```
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+# Discretizar  en cuartiles
+Resultados_Unal$Edad_cuartiles <- cut(Resultados_Unal$Edad, 
+                          breaks = cuartiles_edad, 
+                          include.lowest = TRUE, 
+                          labels = c("19.82-22.64", "22.64-23.68", "23.68-25.57", "25.57-64.29"))
+
+```
+
+```{r, echo=FALSE}
+kable(table(Resultados_Unal$Edad_cuartiles))
+```
+```{r ,echo=FALSE}
+barplot(table(Resultados_Unal$Edad_cuartiles), col = c("lightblue", "lightgreen", "orange", "red"),las = 2 ,main = "Distribución de Edades", ylab = "Frecuencia")
+```
+
+#### Razonamiento Cuantitativo
+
+
+```{r, echo=FALSE}
+
+Ke <- unclass(table(Resultados_Unal$Edad_cuartiles,Resultados_Unal$RC_cuartiles))
+K_adde <- addmargins(Ke)
+kable(K_adde)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+ke <- sum(Ke)
+F_adde <- K_adde / ke
+kable(round(F_adde,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Ke, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Ke, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acse <- dudi.coa(Ke, scannf=FALSE, nf=2) 
+kable(round(acse$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acse, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.4,0.4))
+```
+
+#### Comunicación Escrita
+
+
+```{r, echo=FALSE}
+
+Ke1 <- unclass(table(Resultados_Unal$Edad_cuartiles,Resultados_Unal$CE_cuartiles))
+K_adde1 <- addmargins(Ke1)
+kable(K_adde1)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+ke1 <- sum(Ke1)
+F_adde1 <- K_adde1 / ke1
+kable(round(F_adde1,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Ke1, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Ke1, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acse1 <- dudi.coa(Ke1, scannf=FALSE, nf=2) 
+kable(round(acse1$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acse1, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.4,0.4))
+```
+
+
+#### Lectura Crítica
+
+
+```{r, echo=FALSE}
+
+Ke2 <- unclass(table(Resultados_Unal$Edad_cuartiles,Resultados_Unal$LC_cuartiles))
+K_adde2 <- addmargins(Ke2)
+kable(K_adde2)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+ke2 <- sum(Ke2)
+F_adde2 <- K_adde2 / ke2
+kable(round(F_adde2,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Ke2, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Ke2, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acse2 <- dudi.coa(Ke2, scannf=FALSE, nf=2) 
+kable(round(acse2$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acse2, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.4,0.4))
+```
+
+
+
+#### Competencias Ciudadanas
+
+
+```{r, echo=FALSE}
+
+Ke3 <- unclass(table(Resultados_Unal$Edad_cuartiles,Resultados_Unal$CC_cuartiles))
+K_adde3 <- addmargins(Ke3)
+kable(K_adde3)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+ke3 <- sum(Ke3)
+F_adde3 <- K_adde3 / ke3
+kable(round(F_adde3,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Ke3, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Ke3, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acse3 <- dudi.coa(Ke3, scannf=FALSE, nf=2) 
+kable(round(acse3$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acse3, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.4,0.4))
+```
+
+
+
+#### Ingles
+
+
+```{r, echo=FALSE}
+
+Ke4 <- unclass(table(Resultados_Unal$Edad_cuartiles,Resultados_Unal$I_cuartiles))
+K_adde4 <- addmargins(Ke4)
+kable(K_adde4)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+ke4 <- sum(Ke4)
+F_adde4 <- K_adde4 / ke4
+kable(round(F_adde4,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Ke4, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Ke4, "col", col = colores[9:12], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acse4 <- dudi.coa(Ke4, scannf=FALSE, nf=2) 
+kable(round(acse4$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acse4, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.4,0.4))
+```
+
+
+### Nivel educativo padres
+
+### Madre
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Educación profesional completa"] <- "EPC"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Educación profesional incompleta"] <- "EPI"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Ninguno"] <- "Nin"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "No Aplica"] <- "No_Apli"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "No sabe"] <- "N/S"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Postgrado"] <- "Postg"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Primaria completa"] <- "Pri_C"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Primaria incompleta"] <- "Pri_I"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Secundaria (Bachillerato) completa"] <- "Sec_C"
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Secundaria (Bachillerato) incompleta"] <- "Sec_I"
+
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Técnica o tecnológica completa"] <- "T_C"
+
+Resultados_Unal$FAMI_EDUCACIONMADRE[Resultados_Unal$FAMI_EDUCACIONMADRE == "Técnica o tecnológica incompleta"] <- "T_I"
+
+
+```
+
+
+#### Razonamiento Cuantitativo
+
+
+```{r, echo=FALSE}
+Kem <- unclass(table(Resultados_Unal$FAMI_EDUCACIONMADRE,Resultados_Unal$RC_cuartiles))
+K_addem <- addmargins(Kem)
+kable(K_addem)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kem <- sum(Kem)
+F_addem <- K_addem / kem
+kable(round(F_addem,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsem <- dudi.coa(Kem, scannf=FALSE, nf=2) 
+kable(round(acsem$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsem, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.7,0.7))
+```
+
+
+
+#### Comunicación Escrita
+
+
+```{r, echo=FALSE}
+Kem1 <- unclass(table(Resultados_Unal$FAMI_EDUCACIONMADRE,Resultados_Unal$CE_cuartiles))
+K_addem1 <- addmargins(Kem1)
+kable(K_addem1)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kem1 <- sum(Kem1)
+F_addem1 <- K_addem1 / kem1
+kable(round(F_addem1,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem1, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem1, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsem1 <- dudi.coa(Kem1, scannf=FALSE, nf=2) 
+kable(round(acsem1$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsem1, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.7,0.7))
+```
+
+
+
+#### Lectura Critica
+
+
+```{r, echo=FALSE}
+Kem2 <- unclass(table(Resultados_Unal$FAMI_EDUCACIONMADRE,Resultados_Unal$LC_cuartiles))
+K_addem2 <- addmargins(Kem2)
+kable(K_addem2)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kem2 <- sum(Kem2)
+F_addem2 <- K_addem2 / kem2
+kable(round(F_addem2,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem2, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem2, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsem2 <- dudi.coa(Kem2, scannf=FALSE, nf=2) 
+kable(round(acsem2$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsem2, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.7,0.7))
+```
+
+#### Competencias Ciudadanas
+
+
+```{r, echo=FALSE}
+Kem3 <- unclass(table(Resultados_Unal$FAMI_EDUCACIONMADRE,Resultados_Unal$CC_cuartiles))
+K_addem3 <- addmargins(Kem3)
+kable(K_addem3)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kem3 <- sum(Kem3)
+F_addem3 <- K_addem3 / kem3
+kable(round(F_addem3,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem3, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem3, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsem3 <- dudi.coa(Kem3, scannf=FALSE, nf=2) 
+kable(round(acsem3$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsem3, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.7,0.7))
+```
+
+
+#### Ingles
+
+
+```{r, echo=FALSE}
+Kem4 <- unclass(table(Resultados_Unal$FAMI_EDUCACIONMADRE,Resultados_Unal$I_cuartiles))
+K_addem4 <- addmargins(Kem4)
+kable(K_addem4)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kem4 <- sum(Kem4)
+F_addem4 <- K_addem4 / kem4
+kable(round(F_addem4,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem4, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem4, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsem4 <- dudi.coa(Kem4, scannf=FALSE, nf=2) 
+kable(round(acsem4$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsem4, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.7,0.7))
+```
+
+### Padre
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE== "Educación profesional completa"] <- "EPC"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Educación profesional incompleta"] <- "EPI"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE== "Ninguno"] <- "Nin"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "No Aplica"] <- "No_Apli"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE== "No sabe"] <- "N/S"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Postgrado"] <- "Postg"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Primaria completa"] <- "Pri_C"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Primaria incompleta"] <- "Pri_I"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Secundaria (Bachillerato) completa"] <- "Sec_C"
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Secundaria (Bachillerato) incompleta"] <- "Sec_I"
+
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Técnica o tecnológica completa"] <- "T_C"
+
+Resultados_Unal$FAMI_EDUCACIONPADRE[Resultados_Unal$FAMI_EDUCACIONPADRE == "Técnica o tecnológica incompleta"] <- "T_I"
+
+
+```
+
+
+#### Razonamiento Cuantitativo
+
+
+```{r, echo=FALSE}
+Kem <- unclass(table(Resultados_Unal$FAMI_EDUCACIONPADRE,Resultados_Unal$RC_cuartiles))
+K_addem <- addmargins(Kem)
+kable(K_addem)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kem <- sum(Kem)
+F_addem <- K_addem / kem
+kable(round(F_addem,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsem <- dudi.coa(Kem, scannf=FALSE, nf=2) 
+kable(round(acsem$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsem, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.7,0.7))
+```
+
+
+
+#### Comunicación Escrita
+
+
+```{r, echo=FALSE}
+Kem1 <- unclass(table(Resultados_Unal$FAMI_EDUCACIONPADRE,Resultados_Unal$CE_cuartiles))
+K_addem1 <- addmargins(Kem1)
+kable(K_addem1)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kem1 <- sum(Kem1)
+F_addem1 <- K_addem1 / kem1
+kable(round(F_addem1,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem1, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem1, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsem1 <- dudi.coa(Kem1, scannf=FALSE, nf=2) 
+kable(round(acsem1$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsem1, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.7,0.7))
+```
+
+
+
+#### Lectura Critica
+
+
+```{r, echo=FALSE}
+Kem2 <- unclass(table(Resultados_Unal$FAMI_EDUCACIONPADRE,Resultados_Unal$LC_cuartiles))
+K_addem2 <- addmargins(Kem2)
+kable(K_addem2)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kem2 <- sum(Kem2)
+F_addem2 <- K_addem2 / kem2
+kable(round(F_addem2,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem2, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem2, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsem2 <- dudi.coa(Kem2, scannf=FALSE, nf=2) 
+kable(round(acsem2$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsem2, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.7,0.7))
+```
+
+#### Competencias Ciudadanas
+
+
+```{r, echo=FALSE}
+Kem3 <- unclass(table(Resultados_Unal$FAMI_EDUCACIONPADRE,Resultados_Unal$CC_cuartiles))
+K_addem3 <- addmargins(Kem3)
+kable(K_addem3)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kem3 <- sum(Kem3)
+F_addem3 <- K_addem3 / kem3
+kable(round(F_addem3,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem3, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem3, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsem3 <- dudi.coa(Kem3, scannf=FALSE, nf=2) 
+kable(round(acsem3$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsem3, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.7,0.7))
+```
+
+
+#### Ingles
+
+
+```{r, echo=FALSE}
+Kem4 <- unclass(table(Resultados_Unal$FAMI_EDUCACIONPADRE,Resultados_Unal$I_cuartiles))
+K_addem4 <- addmargins(Kem4)
+kable(K_addem4)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kem4 <- sum(Kem4)
+F_addem4 <- K_addem4 / kem4
+kable(round(F_addem4,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem4, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kem4, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsem4 <- dudi.coa(Kem4, scannf=FALSE, nf=2) 
+kable(round(acsem4$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsem4, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.2,0.2),xlim = c(-0.7,0.7))
+```
+
+
+### Valor Matricula
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Entre 1 millón y menos de 2.5 millones"] <- "1m-2.5m"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Entre 2.5 millones y menos de 4 millones"] <- "2.5m-4m"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Entre 4 millones y menos de 5.5 millones"] <- "4m-5.5m"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Entre 5.5 millones y menos de 7 millones"] <- "5.5m-7m"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Entre 500 mil y menos de 1 millón"] <- "500mil-1m"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Más de 7 millones"] <- "<7"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "Menos de 500 mil"] <- ">500mil"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "No pagó matrícula"] <- "NPM"
+Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD[Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD== "No Sabe"] <- "N/S"
+
+```
+
+#### Razonamiento Cuantitativo
+
+```{r, echo=FALSE}
+KV <- unclass(table(Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD,Resultados_Unal$RC_cuartiles))
+K_addV <- addmargins(KV)
+kable(K_addV)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kV <- sum(KV)
+F_addV <- K_addV / kV
+kable(round(F_addV,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(KV, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(KV, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsV <- dudi.coa(KV, scannf=FALSE, nf=2) 
+kable(round(acsV$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsV, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.8,0.8),xlim = c(-1,1))
+```
+
+
+#### Comunicación Escrita
+
+```{r, echo=FALSE}
+KV <- unclass(table(Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD,Resultados_Unal$CE_cuartiles))
+K_addV <- addmargins(KV)
+kable(K_addV)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kV <- sum(KV)
+F_addV <- K_addV / kV
+kable(round(F_addV,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(KV, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(KV, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsV <- dudi.coa(KV, scannf=FALSE, nf=2) 
+kable(round(acsV$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsV, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.8,0.8),xlim = c(-1,1))
+```
+
+
+
+#### Lectura Crítica
+
+```{r, echo=FALSE}
+KV <- unclass(table(Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD,Resultados_Unal$LC_cuartiles))
+K_addV <- addmargins(KV)
+kable(K_addV)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kV <- sum(KV)
+F_addV <- K_addV / kV
+kable(round(F_addV,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(KV, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(KV, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsV <- dudi.coa(KV, scannf=FALSE, nf=2) 
+kable(round(acsV$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsV, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.8,0.8),xlim = c(-1,1))
+```
+
+
+
+
+#### Competencias Ciudadanas
+
+```{r, echo=FALSE}
+KV <- unclass(table(Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD,Resultados_Unal$CC_cuartiles))
+K_addV <- addmargins(KV)
+kable(K_addV)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kV <- sum(KV)
+F_addV <- K_addV / kV
+kable(round(F_addV,2) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(KV, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(KV, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsV <- dudi.coa(KV, scannf=FALSE, nf=2) 
+kable(round(acsV$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsV, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.8,0.8),xlim = c(-1,1))
+```
+
+
+
+
+#### Ingles
+
+```{r, echo=FALSE}
+KV <- unclass(table(Resultados_Unal$ESTU_VALORMATRICULAUNIVERSIDAD,Resultados_Unal$I_cuartiles))
+K_addV <- addmargins(KV)
+kable(K_addV)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kV <- sum(KV)
+F_addV <- K_addV / kV
+kable(round(F_addV,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(KV, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(KV, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acsV <- dudi.coa(KV, scannf=FALSE, nf=2) 
+kable(round(acsV$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acsV, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-1,1),xlim = c(-1.5,1.5))
+```
+
+### Horas de trabajo semanal
+
+```{r,warning=FALSE,message=FALSE,include = FALSE}
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "0"] <- "0h"
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "Entre 11 y 20 horas"] <- "11h-20h"
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "Entre 21 y 30 horas"] <- "21h-30h"
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "Más de 30 horas"] <- "<30h"
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "Menos de 10 horas"] <- ">30h"
+Resultados_Unal$ESTU_HORASSEMANATRABAJA[Resultados_Unal$ESTU_HORASSEMANATRABAJA== "No Sabe"] <- "N/S"
+
+```
+
+#### Razonamiento Cuantitativo
+
+```{r, echo=FALSE}
+Kt <- unclass(table(Resultados_Unal$ESTU_HORASSEMANATRABAJA,Resultados_Unal$RC_cuartiles))
+K_addt <- addmargins(Kt)
+kable(K_addt)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kt <- sum(Kt)
+F_addt <- K_addt / kt
+kable(round(F_addt,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kt, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kt, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acst <- dudi.coa(Kt, scannf=FALSE, nf=2) 
+kable(round(acst$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acst, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.4,0.4),xlim = c(-0.4,0.4))
+```
+
+#### Comunicación Escrita
+
+```{r, echo=FALSE}
+Kt <- unclass(table(Resultados_Unal$ESTU_HORASSEMANATRABAJA,Resultados_Unal$CE_cuartiles))
+K_addt <- addmargins(Kt)
+kable(K_addt)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kt <- sum(Kt)
+F_addt <- K_addt / kt
+kable(round(F_addt,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kt, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kt, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acst <- dudi.coa(Kt, scannf=FALSE, nf=2) 
+kable(round(acst$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acst, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.4,0.4),xlim = c(-0.4,0.4))
+```
+
+#### Lectura Crítica
+
+```{r, echo=FALSE}
+Kt <- unclass(table(Resultados_Unal$ESTU_HORASSEMANATRABAJA,Resultados_Unal$LC_cuartiles))
+K_addt <- addmargins(Kt)
+kable(K_addt)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kt <- sum(Kt)
+F_addt <- K_addt / kt
+kable(round(F_addt,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kt, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kt, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acst <- dudi.coa(Kt, scannf=FALSE, nf=2) 
+kable(round(acst$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acst, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.4,0.4),xlim = c(-0.4,0.4))
+```
+
+#### Competencias Ciudadanas
+
+```{r, echo=FALSE}
+Kt <- unclass(table(Resultados_Unal$ESTU_HORASSEMANATRABAJA,Resultados_Unal$CC_cuartiles))
+K_addt <- addmargins(Kt)
+kable(K_addt)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kt <- sum(Kt)
+F_addt <- K_addt / kt
+kable(round(F_addt,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kt, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kt, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acst <- dudi.coa(Kt, scannf=FALSE, nf=2) 
+kable(round(acst$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acst, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.4,0.4),xlim = c(-0.4,0.4))
+```
+
+
+#### Ingles
+
+```{r, echo=FALSE}
+Kt <- unclass(table(Resultados_Unal$ESTU_HORASSEMANATRABAJA,Resultados_Unal$I_cuartiles))
+K_addt <- addmargins(Kt)
+kable(K_addt)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kt <- sum(Kt)
+F_addt <- K_addt / kt
+kable(round(F_addt,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kt, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kt, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acst <- dudi.coa(Kt, scannf=FALSE, nf=2) 
+kable(round(acst$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acst, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.4,0.4),xlim = c(-0.4,0.4))
+```
+
+### Estrato Socioeconomico
+
+
+#### Razonamiento Cuantitativo
+
+```{r, echo=FALSE}
+Kes <- unclass(table(Resultados_Unal$FAMI_ESTRATOVIVIENDA,Resultados_Unal$RC_cuartiles))
+K_addes <- addmargins(Kes)
+kable(K_addes)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kes <- sum(Kes)
+F_addes <- K_addes / kes
+kable(round(F_addes,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kes, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kes, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acses <- dudi.coa(Kes, scannf=FALSE, nf=2) 
+kable(round(acses$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acses, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.4,0.4),xlim = c(-0.8,0.8))
+```
+
+
+#### Comunicación Escrita
+
+```{r, echo=FALSE}
+Kes <- unclass(table(Resultados_Unal$FAMI_ESTRATOVIVIENDA,Resultados_Unal$CE_cuartiles))
+K_addes <- addmargins(Kes)
+kable(K_addes)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kes <- sum(Kes)
+F_addes <- K_addes / kes
+kable(round(F_addes,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kes, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kes, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acses <- dudi.coa(Kes, scannf=FALSE, nf=2) 
+kable(round(acses$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acses, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.4,0.4),xlim = c(-0.8,0.8))
+```
+
+
+#### Lectura Critica
+
+```{r, echo=FALSE}
+Kes <- unclass(table(Resultados_Unal$FAMI_ESTRATOVIVIENDA,Resultados_Unal$LC_cuartiles))
+K_addes <- addmargins(Kes)
+kable(K_addes)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kes <- sum(Kes)
+F_addes <- K_addes / kes
+kable(round(F_addes,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kes, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kes, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acses <- dudi.coa(Kes, scannf=FALSE, nf=2) 
+kable(round(acses$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acses, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.4,0.4),xlim = c(-0.8,0.8))
+```
+
+
+
+#### Competencias Ciudadanas
+
+```{r, echo=FALSE}
+Kes <- unclass(table(Resultados_Unal$FAMI_ESTRATOVIVIENDA,Resultados_Unal$CC_cuartiles))
+K_addes <- addmargins(Kes)
+kable(K_addes)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kes <- sum(Kes)
+F_addes <- K_addes / kes
+kable(round(F_addes,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kes, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kes, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acses <- dudi.coa(Kes, scannf=FALSE, nf=2) 
+kable(round(acses$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acses, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-0.4,0.4),xlim = c(-0.8,0.8))
+```
+
+
+#### Ingles
+
+```{r, echo=FALSE}
+Kes <- unclass(table(Resultados_Unal$FAMI_ESTRATOVIVIENDA,Resultados_Unal$I_cuartiles))
+K_addes <- addmargins(Kes)
+kable(K_addes)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kes <- sum(Kes)
+F_addes <- K_addes / kes
+kable(round(F_addes,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kes, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kes, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acses <- dudi.coa(Kes, scannf=FALSE, nf=2) 
+kable(round(acses$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acses, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-1,1),xlim = c(-1,1))
+```
+
+
+### Resumen
+
+#### Categorizar la variable puntaje global
+
+```{r,echo=FALSE}
+Estrato_soci<- data.frame(Estrato=Resultados_Unal$FAMI_ESTRATOVIVIENDA,
+                          Genero=Resultados_Unal$ESTU_GENERO,
+Razo_Cuantitativos=Resultados_Unal$MOD_RAZONA_CUANTITAT_PUNT,
+Comu_escrita=Resultados_Unal$MOD_COMUNI_ESCRITA_PUNT,
+Lectura_critica=Resultados_Unal$MOD_LECTURA_CRITICA_PUNT,
+Compe_ciudada=Resultados_Unal$MOD_COMPETEN_CIUDADA_PUNT,
+Ingles=Resultados_Unal$MOD_INGLES_PUNT)
+Estrato_soci$Punt_Global<-rowMeans(Estrato_soci[,3:7])
+Estrato_soci<-na.omit(Estrato_soci)
+
+
+cuartiles_puntaje <- quantile(Estrato_soci$Punt_Global, probs = seq(0, 1, by = 0.25))
+kable(cuartiles_puntaje)
+```
+```{r,echo=FALSE}
+Estrato_soci$Punt_Global_cuartiles <- cut(Estrato_soci$Punt_Global, 
+                          breaks = cuartiles_puntaje, 
+                          include.lowest = TRUE, 
+                          labels = c("Bajo", "Medio-Bajo", "Medio-Alto", "Alto"))
+kable(table(Estrato_soci$Punt_Global_cuartiles))
+```
+```{r,echo=FALSE}
+barplot(table(Estrato_soci$Punt_Global_cuartiles), col = c("lightblue", "lightgreen", "orange", "red"),las = 2 ,main = "Distribución Puntaje Global", ylab = "Frecuencia")
+
+```
+
+
+#### Puntaje Global respecto al género
+
+```{r, echo=FALSE}
+Kpg <- unclass(table(Estrato_soci$Genero,Estrato_soci$Punt_Global_cuartiles))
+K_addpg <- addmargins(Kpg)
+kable(K_addpg)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kpg <- sum(Kpg)
+F_addpg <- K_addpg / kpg
+kable(round(F_addpg,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kpg, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kpg, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acspg <- dudi.coa(Kpg, scannf=FALSE, nf=2) 
+kable(round(acspg$eig,4) )
+```
+
+
+
+
+#### Puntaje Global respecto al estrato economico
+
+```{r, echo=FALSE}
+Kpg <- unclass(table(Estrato_soci$Estrato,Estrato_soci$Punt_Global_cuartiles))
+K_addpg <- addmargins(Kpg)
+kable(K_addpg)
+
+```
+
+**Tabla de frecuencias relativas en porcentaje**:
+
+```{r, echo=FALSE}
+kpg <- sum(Kpg)
+F_addpg <- K_addpg / kpg
+kable(round(F_addpg,4) )
+```
+
+**Representación gráfica de las tablas de perfiles**:
+
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kpg, "row", col = colores[1:11],nd=3, main="Perfiles fila")
+
+```
+
+```{r, echo=FALSE}
+colores <- rainbow(12, rev = TRUE)
+plotct(Kpg, "col", col = colores[1:15], main="Perfiles Columna")
+```
+
+```{r, echo=FALSE}
+acspg <- dudi.coa(Kpg, scannf=FALSE, nf=2) 
+kable(round(acspg$eig,4) )
+```
+
+```{r, echo=FALSE,warning=FALSE}
+plot(acspg, ex=1, ey=2, asp=1, cframe=1, gg=TRUE,ylim=c(-1,1),xlim = c(-1,1))
+```
+
